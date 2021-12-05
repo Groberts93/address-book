@@ -1,7 +1,7 @@
 import os
 import os.path as op
 
-class Paths:
+class Filepaths:
 
     def __init__(self, base: str):
         self._base = base

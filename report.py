@@ -6,6 +6,9 @@ import reportlab.rl_config as rcfg
 from reportlab.lib.units import inch
 from dataclasses import dataclass
 
+from filepaths import Filepaths
+import os.path as op
+
 
 @dataclass
 class ReportSpec:
@@ -18,13 +21,14 @@ class ReportSpec:
     font: str = "Helvetica-Bold"
     top_margin: float = 108
     styles = rstl.getSampleStyleSheet()
-    filename = "output.pdf"
+    filename = "output"
 
 
 class Report:
-    def __init__(self, spec: ReportSpec):
+    def __init__(self, spec: ReportSpec, paths: Filepaths):
 
         self._spec = spec
+        self._paths = paths
 
     def _first_page(self, canvas, doc):
         """Describe first page of document.  This method gets
@@ -67,7 +71,10 @@ class Report:
         canvas.restoreState()
 
     def generate(self):
-        doc = plat.SimpleDocTemplate(self._spec.filename)
+        doc = plat.SimpleDocTemplate(
+            op.join(self._paths.pdf, f"{self._spec.filename}.pdf")
+        )
+        
         Story = [plat.Spacer(1, 2 * inch)]
         style = self._spec.styles["Normal"]
         for i in range(100):
