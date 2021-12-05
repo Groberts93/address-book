@@ -9,6 +9,10 @@ from dataclasses import dataclass
 from filepaths import Filepaths
 import os.path as op
 
+import pandas as pd
+import re 
+import numpy as np
+
 
 @dataclass
 class ReportSpec:
@@ -74,9 +78,10 @@ class Report:
         doc = plat.SimpleDocTemplate(
             op.join(self._paths.pdf, f"{self._spec.filename}.pdf")
         )
-        
+
         Story = [plat.Spacer(1, 2 * inch)]
         style = self._spec.styles["Normal"]
+
         for i in range(100):
             bogustext = ("This is Paragraph number %s.  " % i) * 20
             p = plat.Paragraph(bogustext, style)
@@ -84,3 +89,57 @@ class Report:
             Story.append(plat.Spacer(1, 0.2 * inch))
 
         doc.build(Story, onFirstPage=self._first_page, onLaterPages=self._later_pages)
+
+
+@dataclass
+class CardData:
+
+    name: str
+    house: str
+    line1: str
+    line2: str
+    town: str
+    code: str
+    region: str
+
+
+class Card:
+    def __init__(self, card_data: CardData):
+
+        self._data = card_data
+
+    def generate(self) -> str:
+
+        lines = []
+
+        lines.append(self._data.name)
+
+        if re.findall('\d+', self._data.house):
+            house_road = f'{self._data.house} {self._data.line1}'
+            lines.append(house_road)
+        else:
+            lines.append(self._data.house)
+            lines.append(self._data.line1)
+        
+        if not pd.isna(self._data.line2):
+            lines.append(self._data.line2)
+
+        lines.append(self._data.town)
+        lines.append(self._data.code)
+        lines.append(self._data.region)
+
+        return "\n".join(lines)
+
+
+def series_to_carddata(df: pd.Series):
+
+    return CardData(
+        name=df["Name"],
+        house=df["House"],
+        line1=df["Address Line 1"],
+        line2=df["Address Line 2"],
+        town=df["Town/City"],
+        code=df["Postcode"],
+        region=df["Region"],
+    )
+
