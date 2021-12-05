@@ -143,3 +143,12 @@ def series_to_carddata(df: pd.Series):
         region=df["Region"],
     )
 
+def dataframe_to_cards(df: pd.DataFrame) -> list[Card]:
+
+    cards: list[Card] = []
+
+    for irr, record in df.iterrows():
+        card_data = series_to_carddata(record)
+        cards.append(Card(card_data))
+
+    return cards
