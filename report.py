@@ -1,19 +1,79 @@
 import reportlab as rlab
+import reportlab.lib.styles as rstl
 import reportlab.platypus as plat
 import reportlab.rl_config as rcfg
 
 from reportlab.lib.units import inch
 from dataclasses import dataclass
 
+
 @dataclass
 class ReportSpec:
 
-    page_width: float =  rcfg.defaultPageSize[0]
-    page_height: float =  rcfg.defaultPageSize[1]
+    page_width: float = rcfg.defaultPageSize[0]
+    page_height: float = rcfg.defaultPageSize[1]
     font_size: int = 15
+    title: str = "Report Title"
+    page_info: str = "Report Info"
+    font: str = "Helvetica-Bold"
+    top_margin: float = 108
+    styles = rstl.getSampleStyleSheet()
+    filename = "output.pdf"
+
 
 class Report:
-
     def __init__(self, spec: ReportSpec):
 
-        self._specs = spec
+        self._spec = spec
+
+    def _first_page(self, canvas, doc):
+        """Describe first page of document.  This method gets
+        passed to reportlab method 
+
+        Parameters
+        ----------
+        canvas : Reportlab canvas
+            
+        doc : [type]
+            [description]
+        """
+        canvas.saveState()
+        canvas.setFont(self._spec.font, self._spec.font_size)
+        canvas.drawCentredString(
+            self._spec.page_width / 2.0,
+            self._spec.page_height - self._spec.top_margin,
+            self._spec.title,
+        )
+
+        canvas.setFont(self._spec.font, self._spec.font_size)
+        canvas.drawString(inch, 0.75 * inch, f"{self._spec.page_info}")
+        canvas.restoreState()
+
+    def _later_pages(self, canvas, doc):
+        """Description of subsequent pages for reportlab
+
+        Parameters
+        ----------
+        canvas : [type]
+            [description]
+        doc : [type]
+            [description]
+        """
+        canvas.saveState()
+        canvas.setFont(self._spec.font, 9)
+        canvas.drawString(
+            inch, 0.75 * inch, "Page %d %s" % (doc.page, self._spec.page_info)
+        )
+        canvas.restoreState()
+
+    def generate(self):
+        doc = plat.SimpleDocTemplate(self._spec.filename)
+        Story = [plat.Spacer(1, 2 * inch)]
+        style = self._spec.styles["Normal"]
+        for i in range(100):
+            bogustext = ("This is Paragraph number %s.  " % i) * 20
+            p = plat.Paragraph(bogustext, style)
+            Story.append(p)
+            Story.append(plat.Spacer(1, 0.2 * inch))
+
+        doc.build(Story, onFirstPage=self._first_page, onLaterPages=self._later_pages)
