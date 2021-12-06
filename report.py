@@ -10,7 +10,7 @@ from filepaths import Filepaths
 import os.path as op
 
 import pandas as pd
-import re 
+import re
 import numpy as np
 
 
@@ -29,10 +29,11 @@ class ReportSpec:
 
 
 class Report:
-    def __init__(self, spec: ReportSpec, paths: Filepaths):
+    def __init__(self, spec: ReportSpec, paths: Filepaths, data: pd.DataFrame):
 
         self._spec = spec
         self._paths = paths
+        self._data = data
 
     def _first_page(self, canvas, doc):
         """Describe first page of document.  This method gets
@@ -70,7 +71,8 @@ class Report:
         canvas.saveState()
         canvas.setFont(self._spec.font, 9)
         canvas.drawString(
-            inch, 0.75 * inch, "Page %d %s" % (doc.page, self._spec.page_info)
+            # inch, 0.75 * inch, "Page %d %s" % (doc.page, self._spec.page_info)
+            inch, 0.75 * inch, f"Page {doc.page}"
         )
         canvas.restoreState()
 
@@ -79,12 +81,15 @@ class Report:
             op.join(self._paths.pdf, f"{self._spec.filename}.pdf")
         )
 
-        Story = [plat.Spacer(1, 2 * inch)]
-        style = self._spec.styles["Normal"]
+        Story = [plat.Spacer(1, 0.5 * inch)]
+        style = self._spec.styles["BodyText"]
 
-        for i in range(100):
-            bogustext = ("This is Paragraph number %s.  " % i) * 20
-            p = plat.Paragraph(bogustext, style)
+        cards = dataframe_to_cards(self._data)
+
+        for card in cards:
+
+            text = card.generate()
+            p = plat.Paragraph(text, style)
             Story.append(p)
             Story.append(plat.Spacer(1, 0.2 * inch))
 
@@ -114,13 +119,13 @@ class Card:
 
         lines.append(self._data.name)
 
-        if re.findall('\d+', self._data.house):
-            house_road = f'{self._data.house} {self._data.line1}'
+        if re.findall("\d+", self._data.house):
+            house_road = f"{self._data.house} {self._data.line1}"
             lines.append(house_road)
         else:
             lines.append(self._data.house)
             lines.append(self._data.line1)
-        
+
         if not pd.isna(self._data.line2):
             lines.append(self._data.line2)
 
@@ -128,7 +133,7 @@ class Card:
         lines.append(self._data.code)
         lines.append(self._data.region)
 
-        return "\n".join(lines)
+        return "<br/>".join(lines)
 
 
 def series_to_carddata(df: pd.Series):
@@ -143,6 +148,7 @@ def series_to_carddata(df: pd.Series):
         region=df["Region"],
     )
 
+
 def dataframe_to_cards(df: pd.DataFrame) -> list[Card]:
 
     cards: list[Card] = []
@@ -152,3 +158,9 @@ def dataframe_to_cards(df: pd.DataFrame) -> list[Card]:
         cards.append(Card(card_data))
 
     return cards
+
+
+def card_to_paragraph(card: Card) -> plat.Paragraph:
+
+    para = plat.Paragraph(card.generate())
+    return para
